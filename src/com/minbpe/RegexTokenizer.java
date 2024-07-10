@@ -1,6 +1,16 @@
-import java.util.*;
-import java.util.regex.*;
+import tokenpair.TokenPair;
+
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -16,8 +26,8 @@ public class RegexTokenizer extends Tokenizer {
     private final Pattern compiledPattern;
     private Map<String, Integer> specialTokens;
     private Map<Integer, String> inverseSpecialTokens;
-    private Map<TokenPair, Integer> merges;
-    private Map<Integer, byte[]> vocab;
+    protected Map<TokenPair, Integer> merges;
+    protected Map<Integer, byte[]> vocab;
 
     /**
      * Constructs a new RegexTokenizer with an optional pattern.
@@ -124,7 +134,7 @@ public class RegexTokenizer extends Tokenizer {
      * @param textBytes The text to encode as a byte array.
      * @return A list of token IDs.
      */
-    private List<Integer> encodeChunk(byte[] textBytes) {
+    protected List<Integer> encodeChunk(byte[] textBytes) {
         List<Integer> ids = new ArrayList<>(toByteList(textBytes));
         while (ids.size() >= 2) {
             Map<TokenPair, Integer> stats = getStats(ids);
@@ -245,32 +255,6 @@ public class RegexTokenizer extends Tokenizer {
             vocab.put(i, new byte[]{(byte) i});
         }
         return vocab;
-    }
-
-    private void getStats(List<Integer> ids, Map<TokenPair, Integer> stats) {
-        for (int i = 0; i < ids.size() - 1; i++) {
-            TokenPair pair = new TokenPair(ids.get(i), ids.get(i + 1));
-            stats.put(pair, stats.getOrDefault(pair, 0) + 1);
-        }
-    }
-
-    private Map<TokenPair, Integer> getStats(List<Integer> ids) {
-        Map<TokenPair, Integer> stats = new HashMap<>();
-        getStats(ids, stats);
-        return stats;
-    }
-
-    private List<Integer> merge(List<Integer> ids, TokenPair pair, int newId) {
-        List<Integer> newIds = new ArrayList<>();
-        for (int i = 0; i < ids.size(); i++) {
-            if (i < ids.size() - 1 && ids.get(i).equals(pair.getFirst()) && ids.get(i + 1).equals(pair.getSecond())) {
-                newIds.add(newId);
-                i++;
-            } else {
-                newIds.add(ids.get(i));
-            }
-        }
-        return newIds;
     }
 
     private byte[] concatenateBytes(byte[] a, byte[] b) {

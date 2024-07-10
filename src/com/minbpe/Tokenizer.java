@@ -1,6 +1,16 @@
-import java.util.*;
+import tokenpair.TokenPair;
+import utils.ByteUtils;
+import utils.TokenUtils;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A tokenizer class that implements Byte Pair Encoding (BPE) algorithm.
@@ -8,10 +18,10 @@ import java.io.*;
  * as well as train new vocabularies and save/load models.
  */
 public class Tokenizer {
-    private final Map<TokenPair, Integer> merges;
+    protected Map<TokenPair, Integer> merges;
     private String pattern;
     private final Map<String, Integer> specialTokens;
-    private Map<Integer, byte[]> vocab;
+    protected Map<Integer, byte[]> vocab;
 
     /**
      * Constructs a new Tokenizer with default settings.
@@ -34,7 +44,7 @@ public class Tokenizer {
             newVocab.put(i, new byte[]{(byte) i});
         }
         merges.forEach((pair, idx) -> 
-            newVocab.put(idx, ByteUtils.concatenate(newVocab.get(pair.first), newVocab.get(pair.second)))
+            newVocab.put(idx, ByteUtils.concatenate(newVocab.get(pair.getFirst()), newVocab.get(pair.getSecond())))
         );
         specialTokens.forEach((token, idx) -> 
             newVocab.put(idx, token.getBytes(StandardCharsets.UTF_8))
@@ -99,7 +109,7 @@ public class Tokenizer {
             writer.println(pattern);
             writer.println(specialTokens.size());
             specialTokens.forEach((token, idx) -> writer.println(token + " " + idx));
-            merges.forEach((pair, idx) -> writer.println(pair.first + " " + pair.second));
+            merges.forEach((pair, idx) -> writer.println(pair.getFirst() + " " + pair.getSecond()));
         }
     }
 
@@ -118,8 +128,8 @@ public class Tokenizer {
                 String s = TokenUtils.renderToken(token);
                 if (invertedMerges.containsKey(idx)) {
                     TokenPair pair = invertedMerges.get(idx);
-                    String s0 = TokenUtils.renderToken(vocab.get(pair.first));
-                    String s1 = TokenUtils.renderToken(vocab.get(pair.second));
+                    String s0 = TokenUtils.renderToken(vocab.get(pair.getFirst()));
+                    String s1 = TokenUtils.renderToken(vocab.get(pair.getSecond()));
                     writer.println("[" + s0 + "][" + s1 + "] -> [" + s + "] " + idx);
                 } else {
                     writer.println("[" + s + "] " + idx);
@@ -180,83 +190,30 @@ public class Tokenizer {
             merges.put(new TokenPair(idx1, idx2), idx++);
         }
     }
-}
 
-/**
- * Represents a pair of token IDs.
- */
-class TokenPair {
-    final int first;
-    final int second;
-
-    TokenPair(int first, int second) {
-        this.first = first;
-        this.second = second;
+    protected void getStats(List<Integer> ids, Map<TokenPair, Integer> stats) {
+        for (int i = 0; i < ids.size() - 1; i++) {
+            TokenPair pair = new TokenPair(ids.get(i), ids.get(i + 1));
+            stats.put(pair, stats.getOrDefault(pair, 0) + 1);
+        }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TokenPair tokenPair = (TokenPair) o;
-        return first == tokenPair.first && second == tokenPair.second;
+    protected Map<TokenPair, Integer> getStats(List<Integer> ids) {
+        Map<TokenPair, Integer> stats = new HashMap<>();
+        getStats(ids, stats);
+        return stats;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(first, second);
-    }
-}
-
-/**
- * Utility class for token-related operations.
- */
-class TokenUtils {
-    /**
-     * Renders a token for human-readable output, escaping control characters.
-     *
-     * @param token The token to render.
-     * @return A string representation of the token.
-     */
-    public static String renderToken(byte[] token) {
-        String s = new String(token, StandardCharsets.UTF_8);
-        return replaceControlCharacters(s);
-    }
-
-    /**
-     * Replaces control characters in a string with their Unicode escape sequences.
-     *
-     * @param s The input string.
-     * @return The string with control characters replaced.
-     */
-    public static String replaceControlCharacters(String s) {
-        StringBuilder result = new StringBuilder(s.length());
-        for (char ch : s.toCharArray()) {
-            if (Character.getType(ch) != Character.CONTROL) {
-                result.append(ch);
+    protected List<Integer> merge(List<Integer> ids, TokenPair pair, int newId) {
+        List<Integer> newIds = new ArrayList<>();
+        for (int i = 0; i < ids.size(); i++) {
+            if (i < ids.size() - 1 && ids.get(i).equals(pair.getFirst()) && ids.get(i + 1).equals(pair.getSecond())) {
+                newIds.add(newId);
+                i++;
             } else {
-                result.append(String.format("\\u%04x", (int) ch));
+                newIds.add(ids.get(i));
             }
         }
-        return result.toString();
-    }
-}
-
-/**
- * Utility class for byte array operations.
- */
-class ByteUtils {
-    /**
-     * Concatenates two byte arrays.
-     *
-     * @param a The first byte array.
-     * @param b The second byte array.
-     * @return The concatenated byte array.
-     */
-    public static byte[] concatenate(byte[] a, byte[] b) {
-        byte[] result = new byte[a.length + b.length];
-        System.arraycopy(a, 0, result, 0, a.length);
-        System.arraycopy(b, 0, result, a.length, b.length);
-        return result;
+        return newIds;
     }
 }

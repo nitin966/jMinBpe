@@ -1,5 +1,11 @@
-import java.util.*;
+import tokenpair.TokenPair;
+
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A minimal byte-level Byte Pair Encoding (BPE) tokenizer.
@@ -153,45 +159,5 @@ public class BasicTokenizer extends Tokenizer {
         System.arraycopy(a, 0, result, 0, a.length);
         System.arraycopy(b, 0, result, a.length, b.length);
         return result;
-    }
-}
-
-/**
- * Represents a pair of token IDs.
- */
-class TokenPair {
-    private final int first;
-    private final int second;
-
-    /**
-     * Constructs a new TokenPair.
-     *
-     * @param first The first token ID.
-     * @param second The second token ID.
-     */
-    public TokenPair(int first, int second) {
-        this.first = first;
-        this.second = second;
-    }
-
-    public int getFirst() { return first; }
-    public int getSecond() { return second; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TokenPair tokenPair = (TokenPair) o;
-        return first == tokenPair.first && second == tokenPair.second;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(first, second);
-    }
-
-    @Override
-    public String toString() {
-        return "(" + first + ", " + second + ")";
     }
 }

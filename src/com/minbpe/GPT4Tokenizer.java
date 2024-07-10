@@ -1,6 +1,12 @@
-import java.util.*;
+import tokenpair.TokenPair;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.io.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Implements the GPT-4 Tokenizer as a wrapper around the RegexTokenizer.
@@ -107,14 +113,14 @@ public class GPT4Tokenizer extends RegexTokenizer {
         for (int i = 0; i < 256; i++) {
             unshuffledVocab.put(i, new byte[]{(byte) inverseByteShuffleMap.get(i).intValue()});
         }
-        for (Map.Entry<Pair<Integer, Integer>, Integer> entry : merges.entrySet()) {
-            Pair<Integer, Integer> pair = entry.getKey();
+        for (Map.Entry<TokenPair, Integer> entry : merges.entrySet()) {
+            TokenPair pair = entry.getKey();
             int idx = entry.getValue();
             unshuffledVocab.put(idx, concatenateBytes(unshuffledVocab.get(pair.getFirst()), unshuffledVocab.get(pair.getSecond())));
         }
 
-        Map<Integer, Pair<Integer, Integer>> invertedMerges = new HashMap<>();
-        for (Map.Entry<Pair<Integer, Integer>, Integer> entry : merges.entrySet()) {
+        Map<Integer, TokenPair> invertedMerges = new HashMap<>();
+        for (Map.Entry<TokenPair, Integer> entry : merges.entrySet()) {
             invertedMerges.put(entry.getValue(), entry.getKey());
         }
 
@@ -124,7 +130,7 @@ public class GPT4Tokenizer extends RegexTokenizer {
                 byte[] token = entry.getValue();
                 String s = renderToken(token);
                 if (invertedMerges.containsKey(idx)) {
-                    Pair<Integer, Integer> pair = invertedMerges.get(idx);
+                    TokenPair pair = invertedMerges.get(idx);
                     String s0 = renderToken(unshuffledVocab.get(pair.getFirst()));
                     String s1 = renderToken(unshuffledVocab.get(pair.getSecond()));
                     writer.println("[" + s0 + "][" + s1 + "] -> [" + s + "] " + idx);
@@ -141,7 +147,7 @@ public class GPT4Tokenizer extends RegexTokenizer {
         return new HashMap<>();
     }
 
-    private Map<Pair<Integer, Integer>, Integer> recoverMerges(Map<byte[], Integer> mergeableRanks) {
+    private Map<TokenPair, Integer> recoverMerges(Map<byte[], Integer> mergeableRanks) {
         // Implementation of recover_merges function
         // This is a complex operation that would require implementing the bpe function
         // For this example, we'll return an empty map
@@ -153,8 +159,8 @@ public class GPT4Tokenizer extends RegexTokenizer {
         for (int i = 0; i < 256; i++) {
             vocab.put(i, new byte[]{(byte) i});
         }
-        for (Map.Entry<Pair<Integer, Integer>, Integer> entry : merges.entrySet()) {
-            Pair<Integer, Integer> pair = entry.getKey();
+        for (Map.Entry<TokenPair, Integer> entry : merges.entrySet()) {
+            TokenPair pair = entry.getKey();
             int idx = entry.getValue();
             vocab.put(idx, concatenateBytes(vocab.get(pair.getFirst()), vocab.get(pair.getSecond())));
         }
